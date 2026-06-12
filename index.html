@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal Manhwa</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">PM</div>
+      <div>
+        <h1>Portal Manhwa</h1>
+        <p>Catálogo, capítulos e leitor próprio</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="homePage" class="page active">
+      <div class="hero">
+        <h2>Portal Manhwa</h2>
+        <p>Busque, abra uma obra e escolha o capítulo para ler direto no site.</p>
+
+        <div class="stats">
+          <div><strong id="totalCount">0</strong><span>Total</span></div>
+          <div><strong id="readCount">0</strong><span>Lidos</span></div>
+          <div><strong id="doneCount">0</strong><span>Finalizados</span></div>
+        </div>
+
+        <input id="searchInput" type="search" placeholder="Buscar manhwa..." autocomplete="off" />
+      </div>
+
+      <div id="manhwaGrid" class="grid"></div>
+    </section>
+
+    <section id="detailsPage" class="page">
+      <button class="backBtn" onclick="goHome()">← Voltar</button>
+      <div id="detailsBox"></div>
+    </section>
+
+    <section id="readerPage" class="page">
+      <div class="readerTop">
+        <button class="backBtn" onclick="backToDetails()">← Capítulos</button>
+        <h2 id="readerTitle"></h2>
+      </div>
+
+      <div class="readerControls">
+        <button id="prevChapter">Capítulo anterior</button>
+        <select id="chapterSelect"></select>
+        <button id="nextChapter">Próximo capítulo</button>
+      </div>
+
+      <div id="readerImages" class="readerImages"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Portal Manhwa • GitHub Pages</p>
+  </footer>
+
+  <script src="manhwas.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
