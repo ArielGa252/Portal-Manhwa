@@ -1,29 +1,54 @@
+let MANHWAS = [];
 let currentManhwa = null;
 let currentChapterIndex = 0;
 
 const homePage = document.getElementById("homePage");
 const detailsPage = document.getElementById("detailsPage");
 const readerPage = document.getElementById("readerPage");
-
+const loadingBox = document.getElementById("loadingBox");
 const manhwaGrid = document.getElementById("manhwaGrid");
 const searchInput = document.getElementById("searchInput");
 const detailsBox = document.getElementById("detailsBox");
-
 const readerTitle = document.getElementById("readerTitle");
 const readerImages = document.getElementById("readerImages");
 const chapterSelect = document.getElementById("chapterSelect");
 const prevChapter = document.getElementById("prevChapter");
 const nextChapter = document.getElementById("nextChapter");
-
 const totalCount = document.getElementById("totalCount");
 const readCount = document.getElementById("readCount");
 const doneCount = document.getElementById("doneCount");
 
 function cleanName(name) {
-  return String(name || "")
-    .replace("| Blackout Comics", "")
-    .replace("Blackout Comics", "")
+  return String(name || "Sem nome")
+    .replace(/\s*[\-|]\s*Black[oO]ut\s*Comics.*/i, "")
+    .replace(/Black[oO]ut\s*Comics/gi, "")
     .trim();
+}
+
+function normalizeUrl(url) {
+  return String(url || "").replace(/\/$/, "");
+}
+
+function chapterNumber(chapter) {
+  if (typeof chapter === "number") return chapter;
+  if (typeof chapter === "string") return Number(chapter.replace(/\D/g, "")) || chapter;
+  return Number(chapter?.numero || chapter?.capitulo || chapter?.chapter || 0);
+}
+
+function chapterTitle(chapter) {
+  if (typeof chapter === "object" && chapter?.titulo) return chapter.titulo;
+  return `Capítulo ${chapterNumber(chapter)}`;
+}
+
+function chapterImages(chapter) {
+  if (!chapter || typeof chapter !== "object") return [];
+  return chapter.imagens || chapter.images || chapter.paginas || chapter.pages || [];
+}
+
+function originalChapterUrl(manhwa, chapter) {
+  const num = chapterNumber(chapter);
+  const padded = String(num).padStart(2, "0");
+  return `${normalizeUrl(manhwa.url)}/ler/capitulo-${padded}`;
 }
 
 function storageKey(id, field) {
@@ -54,19 +79,62 @@ function showPage(page) {
 }
 
 function updateStats() {
-  const total = MANHWAS.length;
   let read = 0;
   let done = 0;
 
   MANHWAS.forEach(m => {
-    const p = getProgress(m.id);
+    const p = getProgress(m.key);
     if (p.read) read++;
     if (p.done) done++;
   });
 
-  totalCount.textContent = total;
+  totalCount.textContent = MANHWAS.length;
   readCount.textContent = read;
   doneCount.textContent = done;
+}
+
+async function fetchJson(path) {
+  const response = await fetch(path, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Erro ao carregar ${path}`);
+  return response.json();
+}
+
+async function loadData() {
+  try {
+    const [catalog, chapterData] = await Promise.all([
+      fetchJson("manhwas.json"),
+      fetchJson("mangas_resultado.json")
+    ]);
+
+    const chaptersByUrl = new Map(
+      chapterData.map(item => [normalizeUrl(item.url), item])
+    );
+
+    MANHWAS = catalog.map((item, index) => {
+      const info = chaptersByUrl.get(normalizeUrl(item.url)) || {};
+      const chapters = Array.isArray(info.capitulos) ? [...info.capitulos] : [];
+      chapters.sort((a, b) => Number(chapterNumber(a)) - Number(chapterNumber(b)));
+
+      return {
+        key: normalizeUrl(item.url) || String(item.id ?? index),
+        id: item.id ?? index,
+        nome: cleanName(item.titulo || info.nome || item.nome),
+        tituloOriginal: item.titulo || info.nome || item.nome,
+        url: item.url || info.url,
+        capa: item.capa || item.imagem || info.capa || info.imagem || "",
+        status: info.status || item.status || "SEM STATUS",
+        capitulos: chapters,
+        descricao: item.descricao || info.descricao || ""
+      };
+    });
+
+    loadingBox.style.display = "none";
+    updateStats();
+    renderCards(MANHWAS);
+  } catch (error) {
+    loadingBox.innerHTML = `Erro ao carregar os arquivos JSON. Verifique se <strong>manhwas.json</strong> e <strong>mangas_resultado.json</strong> estão na raiz do repositório.`;
+    console.error(error);
+  }
 }
 
 function renderCards(list) {
@@ -78,41 +146,32 @@ function renderCards(list) {
   }
 
   list.forEach(manhwa => {
-    const progress = getProgress(manhwa.id);
+    const progress = getProgress(manhwa.key);
     const card = document.createElement("article");
-    card.className = "card";
+    card.className = `card ${progress.done ? "completed" : ""}`;
 
     card.innerHTML = `
       <div class="cover" data-open="${manhwa.id}">
-        ${manhwa.imagem ? `<img src="${manhwa.imagem}" alt="${cleanName(manhwa.nome)}" loading="lazy">` : "Sem capa"}
+        ${manhwa.capa ? `<img src="${manhwa.capa}" alt="${manhwa.nome}" loading="lazy" referrerpolicy="no-referrer">` : "Sem capa"}
       </div>
 
       <div class="cardBody">
-        <h3 data-open="${manhwa.id}">${cleanName(manhwa.nome)}</h3>
-        <span class="badge">${manhwa.status || "Sem status"}</span>
+        <h3 data-open="${manhwa.id}">${manhwa.nome}</h3>
+        <div class="metaLine">
+          <span class="badge">${manhwa.status}</span>
+          <span>${manhwa.capitulos.length} cap.</span>
+        </div>
 
         <div class="progressBox" onclick="event.stopPropagation()">
-          <label>
-            <input type="checkbox" ${progress.read ? "checked" : ""} data-progress="read" data-id="${manhwa.id}">
-            Lido
-          </label>
-
-          <label>
-            Capítulo atual:
-            <input type="number" min="0" value="${progress.chapter}" placeholder="0" data-progress="chapter" data-id="${manhwa.id}">
-          </label>
-
-          <label>
-            <input type="checkbox" ${progress.done ? "checked" : ""} data-progress="done" data-id="${manhwa.id}">
-            Finalizado
-          </label>
+          <label><input type="checkbox" ${progress.read ? "checked" : ""} data-progress="read" data-key="${manhwa.key}"> Lido</label>
+          <label>Capítulo atual:<input type="number" min="0" value="${progress.chapter}" placeholder="0" data-progress="chapter" data-key="${manhwa.key}"></label>
+          <label><input type="checkbox" ${progress.done ? "checked" : ""} data-progress="done" data-key="${manhwa.key}"> Finalizado</label>
         </div>
-      </div>
-    `;
+      </div>`;
 
-    card.addEventListener("click", (event) => {
+    card.addEventListener("click", event => {
       const openId = event.target?.dataset?.open;
-      if (openId) openDetails(Number(openId));
+      if (openId !== undefined) openDetails(Number(openId));
     });
 
     manhwaGrid.appendChild(card);
@@ -120,14 +179,11 @@ function renderCards(list) {
 
   document.querySelectorAll("[data-progress]").forEach(el => {
     el.addEventListener("change", event => {
-      const id = event.target.dataset.id;
+      const key = event.target.dataset.key;
       const field = event.target.dataset.progress;
 
-      if (field === "chapter") {
-        setProgress(id, field, event.target.value);
-      } else {
-        setProgress(id, field, event.target.checked);
-      }
+      if (field === "chapter") setProgress(key, field, event.target.value);
+      else setProgress(key, field, event.target.checked);
     });
   });
 }
@@ -141,25 +197,26 @@ function openDetails(id) {
   detailsBox.innerHTML = `
     <div class="detailsHeader">
       <div class="detailsCover">
-        ${currentManhwa.imagem ? `<img src="${currentManhwa.imagem}" alt="${cleanName(currentManhwa.nome)}">` : `<div class="cover">Sem capa</div>`}
+        ${currentManhwa.capa ? `<img src="${currentManhwa.capa}" alt="${currentManhwa.nome}" referrerpolicy="no-referrer">` : `<div class="cover">Sem capa</div>`}
       </div>
 
       <div class="detailsText">
-        <h2>${cleanName(currentManhwa.nome)}</h2>
-        <span class="badge">${currentManhwa.status || "Sem status"}</span>
-        <p>${currentManhwa.descricao || "Sem descrição cadastrada."}</p>
-        <p><strong>${chapters.length}</strong> capítulo(s) disponível(is)</p>
+        <h2>${currentManhwa.nome}</h2>
+        <div class="metaLine big">
+          <span class="badge">${currentManhwa.status}</span>
+          <span>${chapters.length} capítulo(s)</span>
+        </div>
+        <p>${currentManhwa.descricao || "Capítulos carregados pelo arquivo mangas_resultado.json."}</p>
+        <a class="sourceBtn" href="${currentManhwa.url}" target="_blank" rel="noopener">Abrir página original</a>
       </div>
     </div>
 
+    <h3 class="sectionTitle">Capítulos</h3>
     <div class="chapters">
       ${chapters.length ? chapters.map((cap, index) => `
-        <button class="chapterBtn" onclick="openReader(${index})">
-          ${cap.titulo || `Capítulo ${cap.numero}`}
-        </button>
+        <button class="chapterBtn" onclick="openReader(${index})">${chapterTitle(cap)}</button>
       `).join("") : `<div class="empty">Nenhum capítulo cadastrado ainda.</div>`}
-    </div>
-  `;
+    </div>`;
 
   showPage(detailsPage);
 }
@@ -175,22 +232,30 @@ function renderReader() {
 
   const chapters = currentManhwa.capitulos || [];
   const chapter = chapters[currentChapterIndex];
+  if (chapter === undefined) return;
 
-  if (!chapter) return;
-
-  readerTitle.textContent = `${cleanName(currentManhwa.nome)} - ${chapter.titulo || `Capítulo ${chapter.numero}`}`;
+  readerTitle.textContent = `${currentManhwa.nome} - ${chapterTitle(chapter)}`;
 
   chapterSelect.innerHTML = chapters.map((cap, index) => `
-    <option value="${index}" ${index === currentChapterIndex ? "selected" : ""}>
-      ${cap.titulo || `Capítulo ${cap.numero}`}
-    </option>
+    <option value="${index}" ${index === currentChapterIndex ? "selected" : ""}>${chapterTitle(cap)}</option>
   `).join("");
 
-  const validImages = (chapter.imagens || []).filter(Boolean);
+  const images = chapterImages(chapter).filter(Boolean);
+  const originalUrl = originalChapterUrl(currentManhwa, chapter);
 
-  readerImages.innerHTML = validImages.length
-    ? validImages.map((src, i) => `<img src="${src}" alt="Página ${i + 1}" loading="lazy">`).join("")
-    : `<div class="empty">Este capítulo ainda não possui imagens cadastradas.</div>`;
+  if (images.length) {
+    readerImages.innerHTML = images
+      .map((src, i) => `<img src="${src}" alt="Página ${i + 1}" loading="lazy" referrerpolicy="no-referrer">`)
+      .join("");
+  } else {
+    readerImages.innerHTML = `
+      <div class="empty readerEmpty">
+        <h3>${chapterTitle(chapter)}</h3>
+        <p>Este JSON tem o número do capítulo, mas ainda não tem os links das imagens internas.</p>
+        <p>Quando você adicionar as imagens dentro de <code>mangas_resultado.json</code>, o leitor vai exibir tudo aqui automaticamente.</p>
+        <a class="sourceBtn" href="${originalUrl}" target="_blank" rel="noopener">Abrir capítulo original</a>
+      </div>`;
+  }
 
   prevChapter.disabled = currentChapterIndex <= 0;
   nextChapter.disabled = currentChapterIndex >= chapters.length - 1;
@@ -208,16 +273,13 @@ function backToDetails() {
 
 function filterManhwas() {
   const term = searchInput.value.toLowerCase().trim();
-
-  return MANHWAS.filter(m => {
-    return cleanName(m.nome).toLowerCase().includes(term) ||
-      String(m.status || "").toLowerCase().includes(term);
-  });
+  return MANHWAS.filter(m =>
+    m.nome.toLowerCase().includes(term) ||
+    String(m.status || "").toLowerCase().includes(term)
+  );
 }
 
-searchInput.addEventListener("input", () => {
-  renderCards(filterManhwas());
-});
+searchInput.addEventListener("input", () => renderCards(filterManhwas()));
 
 chapterSelect.addEventListener("change", event => {
   currentChapterIndex = Number(event.target.value);
@@ -238,5 +300,4 @@ nextChapter.addEventListener("click", () => {
   }
 });
 
-updateStats();
-renderCards(MANHWAS);
+loadData();
