@@ -3,79 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portal Manhwas</title>
-  <meta name="description" content="Portal Manhwas - organize, acompanhe e leia seus capítulos." />
+  <title>Portal Manhwa</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="bg-grid"></div>
   <header class="topbar">
-    <a class="brand" href="index.html" aria-label="Portal Manhwas">
-      <span class="brand-logo">PM</span>
-      <span>
-        <strong>Portal Manhwas</strong>
-        <small>Biblioteca inteligente</small>
-      </span>
-    </a>
-    <nav class="nav-actions">
-      <button id="themeBtn" class="ghost-btn" title="Trocar tema">🌙</button>
-      <button id="backupBtn" class="ghost-btn">Exportar progresso</button>
-      <label class="ghost-btn file-btn">
-        Importar progresso
-        <input id="restoreInput" type="file" accept="application/json" hidden />
-      </label>
-    </nav>
+    <div class="brand" onclick="goHome()">
+      <div class="logo">PM</div>
+      <div>
+        <h1>Portal Manhwa</h1>
+        <p>Catálogo, capítulos e leitor próprio</p>
+      </div>
+    </div>
   </header>
 
   <main class="container">
-    <section class="hero card glow">
-      <div>
-        <p class="eyebrow">GitHub Pages Ready</p>
-        <h1>Seu portal de manhwas mais bonito, rápido e organizado.</h1>
-        <p class="hero-text">Busque obras, marque favoritos, acompanhe capítulos lidos e continue de onde parou. Tudo salvo no navegador, sem precisar de banco de dados.</p>
+    <section id="homePage" class="page active">
+      <div class="hero">
+        <h2>Portal Manhwa</h2>
+        <p>Busque uma obra, acompanhe seu progresso e abra os capítulos encontrados.</p>
+
+        <div class="stats">
+          <div><strong id="totalCount">0</strong><span>Total</span></div>
+          <div><strong id="readCount">0</strong><span>Lidos</span></div>
+          <div><strong id="doneCount">0</strong><span>Finalizados</span></div>
+        </div>
+
+        <input id="searchInput" type="search" placeholder="Buscar manhwa..." autocomplete="off" />
       </div>
-      <div class="hero-panel">
-        <span class="pulse-dot"></span>
-        <strong id="clock">--:--</strong>
-        <small>Sistema online</small>
-      </div>
+
+      <div id="loadingBox" class="empty">Carregando manhwas...</div>
+      <div id="manhwaGrid" class="grid"></div>
     </section>
 
-    <section class="stats-grid" aria-label="Estatísticas">
-      <article class="stat card"><span>Total</span><strong id="statTotal">0</strong></article>
-      <article class="stat card"><span>Lendo</span><strong id="statReading">0</strong></article>
-      <article class="stat card"><span>Finalizados</span><strong id="statFinished">0</strong></article>
-      <article class="stat card"><span>Favoritos</span><strong id="statFav">0</strong></article>
+    <section id="detailsPage" class="page">
+      <button class="backBtn" onclick="goHome()">← Voltar</button>
+      <div id="detailsBox"></div>
     </section>
 
-    <section class="controls card">
-      <div class="search-wrap">
-        <span>🔎</span>
-        <input id="searchInput" type="search" placeholder="Buscar manhwa pelo nome..." autocomplete="off" />
+    <section id="readerPage" class="page">
+      <div class="readerTop">
+        <button class="backBtn" onclick="backToDetails()">← Capítulos</button>
+        <h2 id="readerTitle"></h2>
       </div>
-      <select id="statusFilter" aria-label="Filtrar status">
-        <option value="todos">Todos</option>
-        <option value="lendo">Lendo</option>
-        <option value="favoritos">Favoritos</option>
-        <option value="finalizados">Finalizados</option>
-        <option value="nao-lidos">Não lidos</option>
-      </select>
-      <select id="sortSelect" aria-label="Ordenar">
-        <option value="az">A-Z</option>
-        <option value="za">Z-A</option>
-        <option value="progresso">Maior progresso</option>
-      </select>
-    </section>
 
-    <section id="loading" class="loading card">Carregando biblioteca...</section>
-    <section id="libraryGrid" class="library-grid" aria-live="polite"></section>
-    <section id="emptyState" class="empty card hidden">
-      <h2>Nenhuma obra encontrada</h2>
-      <p>Confira o arquivo <code>data/manhwas.json</code> ou tente mudar a busca/filtro.</p>
+      <div class="readerControls">
+        <button id="prevChapter">Capítulo anterior</button>
+        <select id="chapterSelect"></select>
+        <button id="nextChapter">Próximo capítulo</button>
+      </div>
+
+      <div id="readerImages" class="readerImages"></div>
     </section>
   </main>
 
-  <footer class="footer">Portal Manhwas • feito para GitHub Pages • progresso salvo no navegador</footer>
+  <footer>
+    <p>Portal Manhwa • GitHub Pages</p>
+  </footer>
+
   <script src="app.js"></script>
 </body>
 </html>
