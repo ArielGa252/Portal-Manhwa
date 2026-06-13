@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leitor • Portal Manhwas</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="reader-body">
+  <header class="reader-topbar">
+    <a id="backToManga" class="ghost-btn" href="index.html">← Obra</a>
+    <div class="reader-title"><strong id="readerTitle">Carregando...</strong><small id="readerInfo"></small></div>
+    <div class="reader-actions">
+      <button id="fitBtn" class="ghost-btn">Largura</button>
+      <button id="markReadBtn" class="primary-btn">Marcar lido</button>
+    </div>
+  </header>
+  <main>
+    <section id="readerPages" class="reader-pages"></section>
+    <section id="readerEmpty" class="empty card hidden">
+      <h2>Imagens do capítulo não encontradas</h2>
+      <p>Coloque um arquivo em <code>data/capitulos/ID-CAPITULO.json</code> com a lista de imagens.</p>
+      <pre>{
+  "imagens": [
+    "imagens/capitulos/109/1/001.jpg",
+    "imagens/capitulos/109/1/002.jpg"
+  ]
+}</pre>
+    </section>
+  </main>
+  <script src="leitor.js"></script>
+</body>
+</html>
